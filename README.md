@@ -13,9 +13,9 @@ TCP 反向代理服务器,监听本地端口,并将请求全部转发到远端,
 
 #### HTTP 反向代理
 <pre>
-# bin/reverse -l localhost:9000 -r 19.45.79.21:80
+ # bin/reverse -l localhost:9000 -r 19.45.79.21:80
 
-# curl -vvv http://localhost:9000/
+ # curl -vvv http://localhost:9000/
 
 1: 127.0.0.1:9000 .-> 127.0.0.1:59627
 .................................
@@ -40,8 +40,8 @@ TCP 反向代理服务器,监听本地端口,并将请求全部转发到远端,
 
 #### PostgreSQL 反向代理 
 <pre>
-# bin/reverse -l localhost:9000 -r pgsql:5432
-# psql -Upgsql -h localhost -p 9000 template1
+ # bin/reverse -l localhost:9000 -r pgsql:5432
+ # psql -Upgsql -h localhost -p 9000 template1
 
 
 1: 127.0.0.1:9000 &lt;-&gt; 127.0.0.1:62851
@@ -75,6 +75,11 @@ REMOTE&gt;&gt;&gt;&gt;&gt;
 #### SSH 反向代理
 
 <per>
+ 
+ # bin/reverse -l localhost:9000 -r ssh_host:22
+ # ssh -p 9000 localhost
+
+
 
  # bin/reverse -l localhost:9000 -r ssh_host:22
  # ssh -p 9000 localhost
