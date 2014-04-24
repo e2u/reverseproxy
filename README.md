@@ -28,7 +28,7 @@ TCP 反向代理服务器,监听本地端口,并将请求全部转发到远端,
 00000060  31 32 37 2e 30 2e 30 2e  31 3a 39 30 30 30 0d 0a  |127.0.0.1:9000..|
 00000070  41 63 63 65 70 74 3a 20  2a 2f 2a 0d 0a 0d 0a     |Accept: */*....|
 
-&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;>>>
+&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;&lt;
 00000000  48 54 54 50 2f 31 2e 31  20 34 30 34 20 4e 6f 74  |HTTP/1.1 404 Not|
 00000010  20 46 6f 75 6e 64 0d 0a  53 65 72 76 65 72 3a 20  | Found..Server: |
 00000020  6e 67 69 6e 78 0d 0a 44  61 74 65 3a 20 54 68 75  |nginx..Date: Thu|
@@ -80,9 +80,6 @@ REMOTE&gt;&gt;&gt;&gt;&gt;
  # ssh -p 9000 localhost
 
 
-
- # bin/reverse -l localhost:9000 -r ssh_host:22
- # ssh -p 9000 localhost
 
     ...............
 </pre>
