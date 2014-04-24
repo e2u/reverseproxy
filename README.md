@@ -74,13 +74,5 @@ REMOTE&gt;&gt;&gt;&gt;&gt;
 </pre>
 
 
-#### SSH 反向代理
 
-<per>
- 
- # bin/reverse -l localhost:9000 -r ssh_host:22
- # ssh -p 9000 localhost
-
-...............
-</pre>
-
+#### SSH反向代理
