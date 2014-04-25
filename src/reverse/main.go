@@ -4,14 +4,20 @@ import (
   "encoding/hex"
   "flag"
   "fmt"
+  "log"
   "net"
   "os"
+  "time"
 )
+
+const BUF_SIZE = 8092
 
 var (
   local_address       string
   remote_address      string
   remote_read_timeout int = 30 //远程连接超时时间,单位: 秒
+  log_file            string
+  access_log          *log.Logger
 )
 
 func init() {
@@ -19,7 +25,18 @@ func init() {
   flag.StringVar(&local_address, "l", "localhost:9000", `local listen local ip:port`)
   flag.StringVar(&remote_address, "r", "remote:9000", `remote ip and port  ip:port`)
   flag.IntVar(&remote_read_timeout, "t", 30, "remote connection timeout: default 30 sec")
+  flag.StringVar(&log_file, "o", "", `dump to file /tmp/reverseproxy.log`)
   flag.Parse()
+  initLogger()
+}
+
+func initLogger() {
+  if len(log_file) == 0 {
+    return
+  }
+  if out, err := os.OpenFile(log_file, os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend|0666); err == nil {
+    access_log = log.New(out, "", 0)
+  }
 }
 
 func main() {
@@ -28,6 +45,7 @@ func main() {
     panic(fmt.Sprintf("ERROR: couldn't start listening"))
   }
   conns := clientConns(server)
+  fmt.Println("listen on", local_address, ",remote address -> ", remote_address)
   for {
     go handleConn(<-conns)
   }
@@ -94,6 +112,7 @@ func openConnect(addr string) (*net.TCPConn, error) {
   conn, err := net.DialTCP("tcp", nil, s)
   if err != nil {
     println("ERROR: Dial failed:", err.Error())
+    access_log.Println("ERROR: Dial failed:", err.Error())
     return nil, err
   }
   return conn, nil
@@ -106,11 +125,10 @@ func show_usage() {
   flag.PrintDefaults()
 }
 
-
 func chanFromConn(conn net.Conn) chan []byte {
   c := make(chan []byte)
   go func() {
-    b := make([]byte, 1024)
+    b := make([]byte, BUF_SIZE)
     for {
       n, err := conn.Read(b)
       if n > 0 {
@@ -137,14 +155,16 @@ func Pipe(local net.Conn, remote net.Conn) {
       if b1 == nil {
         return
       } else {
-        fmt.Printf("LOCAL>>>>>\n%s", hex.Dump(b1))
+        fmt.Printf("%v LOCAL>>>>>\n%s", time.Now(), hex.Dump(b1))
+        access_log.Printf("%v LOCAL>>>>>\n%s", time.Now(), hex.Dump(b1))
         remote.Write(b1)
       }
     case b2 := <-remote_chan:
       if b2 == nil {
         return
       } else {
-        fmt.Printf("REMOTE<<<<<\n%s", hex.Dump(b2))
+        fmt.Printf("%v REMOTE<<<<<\n%s", time.Now(), hex.Dump(b2))
+        access_log.Printf("%v REMOTE<<<<<\n%s", time.Now(), hex.Dump(b2))
         local.Write(b2)
       }
     }
