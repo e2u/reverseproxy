@@ -10,7 +10,7 @@ import (
   "time"
 )
 
-const BUF_SIZE = 8092
+const BUF_SIZE = 512
 
 var (
   local_address       string
@@ -75,15 +75,12 @@ func clientConns(listenner net.Listener) chan net.Conn {
   ch := make(chan net.Conn)
   i := 0
   go func() {
-    for {
-      client, err := listenner.Accept()
-      if client == nil {
-        fmt.Printf("ERROR: couldn't accept: %v", err)
-        continue
-      }
+    if client, err := listenner.Accept(); err == nil && client != nil {
       i++
-      fmt.Printf("%d: %v <-> %v \n", i, client.LocalAddr(), client.RemoteAddr())
+      fmt.Printf("id: %d  %v <-> %v \n", i, client.LocalAddr(), client.RemoteAddr())
       ch <- client
+    } else {
+      fmt.Printf("ERROR: couldn't accept: %v", err)
     }
   }()
   return ch
@@ -130,19 +127,16 @@ func chanFromConn(conn net.Conn) chan []byte {
   go func() {
     b := make([]byte, BUF_SIZE)
     for {
-      n, err := conn.Read(b)
-      if n > 0 {
+      if n, err := conn.Read(b); err != nil {
+        c <- nil
+        break
+      } else if n > 0 {
         res := make([]byte, n)
         copy(res, b[:n])
         c <- res
       }
-      if err != nil {
-        c <- nil
-        break
-      }
     }
   }()
-
   return c
 }
 
@@ -154,19 +148,25 @@ func Pipe(local net.Conn, remote net.Conn) {
     case b1 := <-local_chan:
       if b1 == nil {
         return
-      } else {
-        fmt.Printf("%v LOCAL>>>>>\n%s", time.Now(), hex.Dump(b1))
-        access_log.Printf("%v LOCAL>>>>>\n%s", time.Now(), hex.Dump(b1))
-        remote.Write(b1)
       }
+      out_str := fmt.Sprintf("%v LOCAL>>>>>\n%s%s\n", time.Now(), hex.Dump(b1), hex.EncodeToString(b1))
+      fmt.Print(out_str)
+      if access_log != nil {
+        access_log.Print(out_str)
+      }
+      remote.Write(b1)
+
     case b2 := <-remote_chan:
       if b2 == nil {
         return
-      } else {
-        fmt.Printf("%v REMOTE<<<<<\n%s", time.Now(), hex.Dump(b2))
-        access_log.Printf("%v REMOTE<<<<<\n%s", time.Now(), hex.Dump(b2))
-        local.Write(b2)
       }
+      out_str := fmt.Sprintf("%v REMOTE<<<<<\n%s%s\n", time.Now(), hex.Dump(b2), hex.EncodeToString(b2))
+      fmt.Print(out_str)
+      if access_log != nil {
+        access_log.Print(out_str)
+      }
+      local.Write(b2)
+
     }
   }
 }
