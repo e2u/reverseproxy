@@ -10,7 +10,7 @@ import (
   "time"
 )
 
-const BUF_SIZE = 512
+const BUF_SIZE = 1024
 
 var (
   local_address       string
@@ -25,7 +25,7 @@ func init() {
   flag.StringVar(&local_address, "l", "localhost:9000", `local listen local ip:port`)
   flag.StringVar(&remote_address, "r", "remote:9000", `remote ip and port  ip:port`)
   flag.IntVar(&remote_read_timeout, "t", 30, "remote connection timeout: default 30 sec")
-  flag.StringVar(&log_file, "o", "", `dump to file /tmp/reverseproxy.log`)
+  flag.StringVar(&log_file, "log", "", `dump to file /tmp/reverseproxy.log`)
   flag.Parse()
   initLogger()
 }
@@ -44,20 +44,16 @@ func main() {
   if err != nil || server == nil {
     panic(fmt.Sprintf("ERROR: couldn't start listening"))
   }
-  conns := clientConns(server)
   fmt.Println("listen on", local_address, ",remote address -> ", remote_address)
   for {
+    conns := clientConns(server)
     go handleConn(<-conns)
   }
 }
 
 //读取客户端发送来的消息,转发到远端服务器
 func handleConn(local_conn net.Conn) {
-
   remote_conn, err := openConnect(remote_address)
-  //remote_conn.SetReadDeadline(time.Now().Add(time.Duration(remote_read_timeout) * time.Second))
-  remote_conn.SetKeepAlive(true)
-  remote_conn.SetNoDelay(true)
   if err != nil {
     return
   }
@@ -66,11 +62,9 @@ func handleConn(local_conn net.Conn) {
   defer local_conn.Close()
 
   Pipe(local_conn, remote_conn)
+
 }
 
-/*
-
-*/
 func clientConns(listenner net.Listener) chan net.Conn {
   ch := make(chan net.Conn)
   i := 0
@@ -128,12 +122,9 @@ func chanFromConn(conn net.Conn) chan []byte {
     b := make([]byte, BUF_SIZE)
     for {
       if n, err := conn.Read(b); err != nil {
-        c <- nil
         break
       } else if n > 0 {
-        res := make([]byte, n)
-        copy(res, b[:n])
-        c <- res
+        c <- b[:n]
       }
     }
   }()
@@ -146,9 +137,6 @@ func Pipe(local net.Conn, remote net.Conn) {
   for {
     select {
     case b1 := <-local_chan:
-      if b1 == nil {
-        return
-      }
       out_str := fmt.Sprintf("%v LOCAL>>>>>\n%s%s\n", time.Now(), hex.Dump(b1), hex.EncodeToString(b1))
       fmt.Print(out_str)
       if access_log != nil {
@@ -157,16 +145,12 @@ func Pipe(local net.Conn, remote net.Conn) {
       remote.Write(b1)
 
     case b2 := <-remote_chan:
-      if b2 == nil {
-        return
-      }
       out_str := fmt.Sprintf("%v REMOTE<<<<<\n%s%s\n", time.Now(), hex.Dump(b2), hex.EncodeToString(b2))
       fmt.Print(out_str)
       if access_log != nil {
         access_log.Print(out_str)
       }
       local.Write(b2)
-
     }
   }
 }
