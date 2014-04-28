@@ -18,6 +18,7 @@ var (
   remote_read_timeout int = 30 //远程连接超时时间,单位: 秒
   log_file            string
   access_log          *log.Logger
+  access_id           int = 0
 )
 
 func init() {
@@ -46,8 +47,13 @@ func main() {
   }
   fmt.Println("listen on", local_address, ",remote address -> ", remote_address)
   for {
-    conns := clientConns(server)
-    go handleConn(<-conns)
+    select {
+    case cc := <-clientConns(server):
+      if cc == nil {
+        break
+      }
+      go handleConn(cc)
+    }
   }
 }
 
@@ -67,14 +73,13 @@ func handleConn(local_conn net.Conn) {
 
 func clientConns(listenner net.Listener) chan net.Conn {
   ch := make(chan net.Conn)
-  i := 0
   go func() {
     if client, err := listenner.Accept(); err == nil && client != nil {
-      i++
-      fmt.Printf("id: %d  %v <-> %v \n", i, client.LocalAddr(), client.RemoteAddr())
+      access_id++
       ch <- client
     } else {
       fmt.Printf("ERROR: couldn't accept: %v", err)
+      ch <- nil
     }
   }()
   return ch
@@ -122,6 +127,7 @@ func chanFromConn(conn net.Conn) chan []byte {
     b := make([]byte, BUF_SIZE)
     for {
       if n, err := conn.Read(b); err != nil {
+        c <- nil
         break
       } else if n > 0 {
         c <- b[:n]
@@ -137,7 +143,10 @@ func Pipe(local net.Conn, remote net.Conn) {
   for {
     select {
     case b1 := <-local_chan:
-      out_str := fmt.Sprintf("%v LOCAL>>>>>\n%s%s\n", time.Now(), hex.Dump(b1), hex.EncodeToString(b1))
+      if b1 == nil {
+        return
+      }
+      out_str := fmt.Sprintf("id: %09d,%v,LOCAL>>>>>\n%s%s\n", access_id, time.Now(), hex.Dump(b1), hex.EncodeToString(b1))
       fmt.Print(out_str)
       if access_log != nil {
         access_log.Print(out_str)
@@ -145,7 +154,10 @@ func Pipe(local net.Conn, remote net.Conn) {
       remote.Write(b1)
 
     case b2 := <-remote_chan:
-      out_str := fmt.Sprintf("%v REMOTE<<<<<\n%s%s\n", time.Now(), hex.Dump(b2), hex.EncodeToString(b2))
+      if b2 == nil {
+        return
+      }
+      out_str := fmt.Sprintf("id: %09d,%v,REMOTE<<<<<\n%s%s\n", access_id, time.Now(), hex.Dump(b2), hex.EncodeToString(b2))
       fmt.Print(out_str)
       if access_log != nil {
         access_log.Print(out_str)
