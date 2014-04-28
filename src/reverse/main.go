@@ -10,7 +10,7 @@ import (
   "time"
 )
 
-const BUF_SIZE = 1024
+const BUF_SIZE = 0xffff
 
 var (
   local_address       string
@@ -47,14 +47,9 @@ func main() {
   }
   fmt.Println("listen on", local_address, ",remote address -> ", remote_address)
   for {
-    select {
-    case cc := <-clientConns(server):
-      if cc == nil {
-        break
-      }
-      go handleConn(cc)
-    }
+    go handleConn(<-clientConns(server))
   }
+
 }
 
 //读取客户端发送来的消息,转发到远端服务器
@@ -79,7 +74,6 @@ func clientConns(listenner net.Listener) chan net.Conn {
       ch <- client
     } else {
       fmt.Printf("ERROR: couldn't accept: %v", err)
-      ch <- nil
     }
   }()
   return ch
@@ -111,6 +105,7 @@ func openConnect(addr string) (*net.TCPConn, error) {
     access_log.Println("ERROR: Dial failed:", err.Error())
     return nil, err
   }
+  conn.SetKeepAlive(true)
   return conn, nil
 }
 
@@ -129,7 +124,7 @@ func chanFromConn(conn net.Conn) chan []byte {
       if n, err := conn.Read(b); err != nil {
         c <- nil
         break
-      } else if n > 0 {
+      } else {
         c <- b[:n]
       }
     }
