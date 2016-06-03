@@ -141,7 +141,7 @@ func Pipe(local net.Conn, remote net.Conn) {
       if b1 == nil {
         return
       }
-      out_str := fmt.Sprintf("id: %09d,%v,LOCAL>>>>>\n%s%s\n", access_id, time.Now(), hex.Dump(b1), hex.EncodeToString(b1))
+      out_str := fmt.Sprintf("id: %09d,%v,LOCAL>>>>>\n%s%s\n%s\n", access_id, time.Now(), hex.Dump(b1), hex.EncodeToString(b1),string(b1))
       fmt.Print(out_str)
       if access_log != nil {
         access_log.Print(out_str)
@@ -152,7 +152,7 @@ func Pipe(local net.Conn, remote net.Conn) {
       if b2 == nil {
         return
       }
-      out_str := fmt.Sprintf("id: %09d,%v,REMOTE<<<<<\n%s%s\n", access_id, time.Now(), hex.Dump(b2), hex.EncodeToString(b2))
+      out_str := fmt.Sprintf("id: %09d,%v,REMOTE<<<<<\n%s%s\n%s\n", access_id, time.Now(), hex.Dump(b2), hex.EncodeToString(b2),string(b2))
       fmt.Print(out_str)
       if access_log != nil {
         access_log.Print(out_str)
