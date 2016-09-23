@@ -39,6 +39,10 @@ var (
 	accessID      int = 0
 	logFormatFlag string
 	logFormat     LoggerType
+	fhexOn        bool
+	hexOn         bool
+	plainOn       bool
+	allOn         bool
 )
 
 func init() {
@@ -66,18 +70,22 @@ func init() {
 
 	if logFormat&FormatHex == FormatHex {
 		log.Println("Hex output is On")
+		hexOn = true
 	}
 
 	if logFormat&FormatFHex == FormatFHex {
 		log.Println("FHex output is On")
+		fhexOn = true
 	}
 
 	if logFormat&FormatPlain == FormatPlain {
 		log.Println("Plain output is On")
+		plainOn = true
 	}
 
 	if logFormat&FormatAll == FormatAll {
 		log.Println("All output is On")
+		allOn = true
 	}
 
 }
@@ -86,7 +94,7 @@ func initLogger() {
 	if len(logFile) == 0 {
 		return
 	}
-	if out, err := os.OpenFile(logFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend|0666); err == nil {
+	if out, err := os.OpenFile(logFile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.ModeAppend|0644); err == nil {
 		accessLog = log.New(out, "", 0)
 	}
 }
@@ -194,13 +202,13 @@ func Pipe(local net.Conn, remote net.Conn) {
 			}
 			var outLine []string
 			outLine = append(outLine, fmt.Sprintf("id: %09d,%v,LOCAL>>>>>>>>>>", accessID, time.Now()))
-			if logFormat&FormatFHex == FormatFHex || logFormat&FormatAll == FormatAll {
+			if fhexOn || allOn {
 				outLine = append(outLine, hex.Dump(b1))
 			}
-			if logFormat&FormatHex == FormatHex || logFormat&FormatAll == FormatAll {
+			if hexOn || allOn {
 				outLine = append(outLine, hex.EncodeToString(b1))
 			}
-			if logFormat&FormatPlain == FormatPlain || logFormat&FormatAll == FormatAll {
+			if plainOn || allOn {
 				outLine = append(outLine, string(b1))
 			}
 
@@ -219,13 +227,13 @@ func Pipe(local net.Conn, remote net.Conn) {
 			}
 			var outLine []string
 			outLine = append(outLine, fmt.Sprintf("id: %09d,%v,REMOTE<<<<<<<<<<", accessID, time.Now()))
-			if logFormat&FormatFHex == FormatFHex || logFormat&FormatAll == FormatAll {
+			if fhexOn || allOn {
 				outLine = append(outLine, hex.Dump(b2))
 			}
-			if logFormat&FormatHex == FormatHex || logFormat&FormatAll == FormatAll {
+			if hexOn || allOn {
 				outLine = append(outLine, hex.EncodeToString(b2))
 			}
-			if logFormat&FormatPlain == FormatPlain || logFormat&FormatAll == FormatAll {
+			if plainOn || allOn {
 				outLine = append(outLine, string(b2))
 			}
 
